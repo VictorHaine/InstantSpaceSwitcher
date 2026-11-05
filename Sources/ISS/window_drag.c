@@ -65,7 +65,8 @@ bool iss_window_follows_cursor(CGRect downFrame, CGPoint downCursor,
 }
 
 bool iss_window_covers_display(CGRect windowBounds, CGRect displayBounds) {
-    return !CGRectIsEmpty(displayBounds) && CGRectContainsRect(windowBounds, displayBounds);
+    // A couple of points of slack: scaled or external displays can round the two rects differently
+    return !CGRectIsEmpty(displayBounds) && CGRectContainsRect(CGRectInset(windowBounds, -2.0, -2.0), displayBounds);
 }
 
 static bool window_bounds(CFDictionaryRef info, CGRect *outBounds) {
@@ -121,6 +122,17 @@ static void record_candidate(CGPoint point) {
             candidateFrame = bounds;
             candidateCursor = point;
             candidateValid = candidateWindow != 0;
+        } else {
+            char owner[64] = "?";
+            CFStringRef name = (CFStringRef)CFDictionaryGetValue(info, kCGWindowOwnerName);
+            if (name) {
+                CFStringGetCString(name, owner, sizeof(owner), kCFStringEncodingUTF8);
+            }
+            iss_carry_log("mouse down at (%.0f, %.0f) blocked by layer %d window of %s, bounds (%.0f, %.0f, %.0f x %.0f), "
+                          "display (%.0f, %.0f, %.0f x %.0f)", point.x, point.y, layer, owner,
+                          bounds.origin.x, bounds.origin.y, bounds.size.width, bounds.size.height,
+                          displayBounds.origin.x, displayBounds.origin.y,
+                          displayBounds.size.width, displayBounds.size.height);
         }
         break;
     }
@@ -156,7 +168,10 @@ bool iss_drag_tracker_start(void) {
         return true;
     }
     CGEventMask mask = CGEventMaskBit(kCGEventLeftMouseDown) | CGEventMaskBit(kCGEventLeftMouseUp);
-    mouseTap = CGEventTapCreate(kCGSessionEventTap, kCGTailAppendEventTap, kCGEventTapOptionListenOnly,
+    // An active tap (the callback passes every event through untouched) needs only the Accessibility
+    // permission; a listen-only tap also needs Input Monitoring, which a fresh Mac has not granted,
+    // so carrying a dragged window silently never worked there.
+    mouseTap = CGEventTapCreate(kCGSessionEventTap, kCGTailAppendEventTap, kCGEventTapOptionDefault,
                                 mask, mouseTapCallback, NULL);
     if (!mouseTap) {
         return false;

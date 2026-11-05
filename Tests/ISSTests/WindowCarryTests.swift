@@ -17,6 +17,12 @@ final class WindowCarryTests: XCTestCase {
     XCTAssertTrue(iss_window_covers_display(display.insetBy(dx: -10, dy: -10), display))
   }
 
+  /// Rounding on scaled or external displays can leave an overlay a point short of the display.
+  func testOverlayOnePointShortStillCountsAsOverlay() {
+    let display = CGRect(x: 0, y: 0, width: 2560, height: 1440)
+    XCTAssertTrue(iss_window_covers_display(CGRect(x: 0, y: 0, width: 2559, height: 1439), display))
+  }
+
   /// The menu bar, a panel or an app window is not an overlay.
   func testSmallerWindowsAreNotOverlays() {
     let display = CGRect(x: 0, y: 0, width: 2560, height: 1440)

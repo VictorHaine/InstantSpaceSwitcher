@@ -883,6 +883,8 @@ static ISSCarryResult try_carry_dragged_window(bool byIndex, unsigned int reques
     if (!iss_bridged_available() || !cgs_symbols_available()) {
         return ISSCarryNotApplicable;
     }
+    // Retry if the tracker could not start earlier (e.g. permission granted after launch)
+    iss_drag_tracker_start();
     if (!iss_drag_current_window(&windowID)) {
         iss_carry_log("no window drag in progress");
         return ISSCarryNotApplicable;
