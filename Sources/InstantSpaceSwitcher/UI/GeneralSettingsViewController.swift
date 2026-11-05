@@ -19,6 +19,8 @@ final class GeneralSettingsViewController: NSViewController {
     checkboxWithTitle: "Launch at login", target: nil, action: nil)
   private let hideMenuBarIconCheckbox = NSButton(
     checkboxWithTitle: "Hide menu bar icon", target: nil, action: nil)
+  private let disableNativeShortcutsCheckbox = NSButton(
+    checkboxWithTitle: "Disable macOS desktop shortcuts", target: nil, action: nil)
 
   private let durationPresets = [100, 200, 300, 500, 750, 1000]
   private let animationSpeedOptions = ["Normal", "Fast", "Faster", "Fastest", "Instant"]
@@ -59,6 +61,8 @@ final class GeneralSettingsViewController: NSViewController {
     launchAtLoginCheckbox.action = #selector(launchAtLoginChanged)
     hideMenuBarIconCheckbox.target = self
     hideMenuBarIconCheckbox.action = #selector(hideMenuBarIconChanged)
+    disableNativeShortcutsCheckbox.target = self
+    disableNativeShortcutsCheckbox.action = #selector(disableNativeShortcutsChanged)
 
     // Populate data
     for duration in durationPresets { osdDurationPopup.addItem(withTitle: "\(duration)ms") }
@@ -69,6 +73,7 @@ final class GeneralSettingsViewController: NSViewController {
     formView.addRow(label: systemLabel, control: launchAtLoginCheckbox)
     formView.addRow(label: nil, control: hideMenuBarIconCheckbox)
     formView.addRow(label: nil, control: swipeOverrideCheckbox)
+    formView.addRow(label: nil, control: disableNativeShortcutsCheckbox)
 
     let experimentalTitle = NSMutableAttributedString(string: "Enable Mission Control/Exposé detection\n")
     let sublabel = NSAttributedString(
@@ -123,6 +128,7 @@ final class GeneralSettingsViewController: NSViewController {
 
     hideMenuBarIconCheckbox.state = defaults.bool(forKey: "hideMenuBarIcon") ? .on : .off
     swipeOverrideCheckbox.state = defaults.bool(forKey: "swipeOverride") ? .on : .off
+    disableNativeShortcutsCheckbox.state = NativeShortcutManager.isDisabledByUs ? .on : .off
 
     let animationSpeedValue = defaults.double(forKey: "gestureSpeed")
     if animationSpeedValue > 0 {
@@ -169,6 +175,13 @@ final class GeneralSettingsViewController: NSViewController {
     let isEnabled = sender.state == .on
     defaults.set(isEnabled, forKey: "swipeOverride")
     iss_set_swipe_override(isEnabled)
+  }
+
+  @objc private func disableNativeShortcutsChanged(_ sender: NSButton) {
+    let disable = sender.state == .on
+    if !NativeShortcutManager.setNativeShortcutsDisabled(disable) {
+      sender.state = disable ? .off : .on
+    }
   }
 
   @objc private func animationSpeedChanged(_ sender: NSPopUpButton) {

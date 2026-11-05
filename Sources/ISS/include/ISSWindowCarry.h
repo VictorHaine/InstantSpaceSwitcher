@@ -54,6 +54,13 @@ bool iss_window_follows_cursor(CGRect downFrame, CGPoint downCursor,
                                CGRect frame, CGPoint cursor, double tolerance);
 
 /**
+ * @brief Whether a window is a transparent overlay spanning its whole display, such as the
+ * full-screen Notification Center and Dock windows macOS 27 keeps above everything.
+ * These never take a click themselves, so window lookup looks through them.
+ */
+bool iss_window_covers_display(CGRect windowBounds, CGRect displayBounds);
+
+/**
  * @brief Whether a window is held still: the button went down on it but neither the window
  * nor (beyond the slop) the cursor has moved since. Combined with an Accessibility check
  * that the press was on the window's title bar or toolbar, this counts as grabbing it.

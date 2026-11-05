@@ -64,6 +64,10 @@ bool iss_window_follows_cursor(CGRect downFrame, CGPoint downCursor,
     return fabs(windowDX - cursorDX) <= tolerance && fabs(windowDY - cursorDY) <= tolerance;
 }
 
+bool iss_window_covers_display(CGRect windowBounds, CGRect displayBounds) {
+    return !CGRectIsEmpty(displayBounds) && CGRectContainsRect(windowBounds, displayBounds);
+}
+
 static bool window_bounds(CFDictionaryRef info, CGRect *outBounds) {
     CFDictionaryRef bounds = (CFDictionaryRef)CFDictionaryGetValue(info, kCGWindowBounds);
     return bounds && CGRectMakeWithDictionaryRepresentation(bounds, outBounds);
@@ -88,6 +92,12 @@ static void record_candidate(CGPoint point) {
         return;
     }
     const pid_t ownPid = getpid();
+    CGDirectDisplayID displayID = 0;
+    uint32_t displayCount = 0;
+    CGRect displayBounds = CGRectZero;
+    if (CGGetDisplaysWithPoint(point, 1, &displayID, &displayCount) == kCGErrorSuccess && displayCount > 0) {
+        displayBounds = CGDisplayBounds(displayID);
+    }
     for (CFIndex i = 0; i < CFArrayGetCount(windows); i++) {
         CFDictionaryRef info = (CFDictionaryRef)CFArrayGetValueAtIndex(windows, i);
         CGRect bounds;
@@ -102,7 +112,11 @@ static void record_candidate(CGPoint point) {
         if (alphaValue <= 0.0 || window_int(info, kCGWindowOwnerPID, 0) == ownPid) {
             continue; // invisible overlays and our own OSD
         }
-        if (window_int(info, kCGWindowLayer, -1) == 0) {
+        const int layer = window_int(info, kCGWindowLayer, -1);
+        if (layer != 0 && iss_window_covers_display(bounds, displayBounds)) {
+            continue; // full-screen system overlay (Notification Center, Dock): click passes through
+        }
+        if (layer == 0) {
             candidateWindow = (uint32_t)window_int(info, kCGWindowNumber, 0);
             candidateFrame = bounds;
             candidateCursor = point;

@@ -8,6 +8,23 @@ import ISS
 
 final class WindowCarryTests: XCTestCase {
 
+  // MARK: - Overlay lookup
+
+  /// macOS 27 keeps full-screen Notification Center and Dock windows above every app.
+  func testFullDisplayWindowIsAnOverlay() {
+    let display = CGRect(x: 0, y: 0, width: 2560, height: 1440)
+    XCTAssertTrue(iss_window_covers_display(display, display))
+    XCTAssertTrue(iss_window_covers_display(display.insetBy(dx: -10, dy: -10), display))
+  }
+
+  /// The menu bar, a panel or an app window is not an overlay.
+  func testSmallerWindowsAreNotOverlays() {
+    let display = CGRect(x: 0, y: 0, width: 2560, height: 1440)
+    XCTAssertFalse(iss_window_covers_display(CGRect(x: 0, y: 0, width: 2560, height: 30), display))
+    XCTAssertFalse(iss_window_covers_display(CGRect(x: 100, y: 100, width: 600, height: 400), display))
+    XCTAssertFalse(iss_window_covers_display(display, .zero))
+  }
+
   // MARK: - Drag detection
 
   private let tolerance = 8.0
