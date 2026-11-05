@@ -304,7 +304,7 @@ struct HotkeyCombination: Codable, Equatable {
   }
 
   private static var defaultModifierMask: UInt32 {
-    UInt32(cmdKey) | UInt32(optionKey) | UInt32(controlKey)
+    UInt32(controlKey)
   }
 }
 
