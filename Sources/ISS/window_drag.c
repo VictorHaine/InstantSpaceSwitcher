@@ -207,12 +207,13 @@ bool iss_drag_current_window(uint32_t *outWindowID) {
         iss_carry_log("no normal window was under the cursor at mouse down");
         return false;
     }
-    // Covers a missed mouse-up (e.g. while the tap was disabled)
-    if (!CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, kCGMouseButtonLeft)) {
-        iss_carry_log("left button is not down");
-        candidateValid = false;
-        return false;
-    }
+    // The press is tracked from the mouse events themselves (candidateValid is set on mouse down
+    // and cleared on mouse up or when the tap is disabled). The hardware button state is not
+    // asked: trackpad tap-dragging, drag lock and three-finger drag press the button in software,
+    // so it reads as up while a window is being dragged.
+    iss_carry_log("button state: tracked down, hardware %s",
+                  CGEventSourceButtonState(kCGEventSourceStateCombinedSessionState, kCGMouseButtonLeft)
+                      ? "down" : "up");
 
     CFArrayRef info = CGWindowListCopyWindowInfo(kCGWindowListOptionIncludingWindow, candidateWindow);
     CGRect frame;
